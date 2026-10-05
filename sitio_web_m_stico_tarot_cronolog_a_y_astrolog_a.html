@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astraea - Oráculo de Tarot, Astrología y Cronología Cósmica</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gold: {
+                            100: '#FFF9E6',
+                            300: '#F7E19D',
+                            400: '#E2C366',
+                            500: '#C59A33',
+                            600: '#A3791D',
+                        },
+                        astral: {
+                            900: '#0B0A1A',
+                            800: '#13112A',
+                            700: '#1D1A3E',
+                            600: '#2A2656',
+                            500: '#3D377A',
+                            400: '#5C54AF'
+                        }
+                    },
+                    fontFamily: {
+                        cinzel: ['Cinzel', 'serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #070612;
+            color: #E2E8F0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Canvas background overlay */
+        #starsCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glass-panel {
+            background: rgba(19, 17, 42, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 195, 102, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-panel-gold {
+            background: linear-gradient(135deg, rgba(226, 195, 102, 0.1) 0%, rgba(19, 17, 42, 0.8) 100%);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 195, 102, 0.35);
+        }
+
+        /* 3D Flip Card Effect */
+        .tarot-card-container {
+            perspective: 1000px;
+        }
+
+        .tarot-card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+
+        .tarot-card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .tarot-card-front, .tarot-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+
+        .tarot-card-back {
+            background: linear-gradient(135deg, #1d1a3e, #0b0a1a);
+            border: 2px solid #C59A33;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .tarot-card-front {
+            transform: rotateY(180deg);
+            background: #13112A;
+            border: 2px solid #E2C366;
+        }
+
+        .gold-glow {
+            box-shadow: 0 0 20px rgba(226, 195, 102, 0.25);
+        }
+
+        .gold-glow-lg {
+            box-shadow: 0 0 35px rgba(226, 195, 102, 0.4);
+        }
+
+        .text-gold-gradient {
+            background: linear-gradient(135deg, #FFF9E6 0%, #E2C366 50%, #A3791D 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #070612;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2A2656;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #C59A33;
+        }
+    </style>
+</head>
+<body class="relative min-h-screen flex flex-col justify-between">
+
+    <!-- Canvas para estrellas de fondo -->
+    <canvas id="starsCanvas"></canvas>
+
+    <!-- NAVBAR -->
+    <header class="sticky top-0 z-50 glass-panel border-b border-gold-500/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-gold-600 to-gold-300 flex items-center justify-center text-astral-900 shadow-lg font-cinzel font-black text-xl">
+                        ✨
+                    </div>
+                    <div>
+                        <a href="#" class="font-cinzel text-xl sm:text-2xl font-bold tracking-wider text-gold-gradient">ASTRAEA</a>
+                        <span class="block text-[10px] uppercase tracking-widest text-gold-400/80">Tarot • Astrología • Cronología</span>
+                    </div>
+                </div>
+
+                <!-- Desktop Nav -->
+                <nav class="hidden md:flex space-x-8 text-sm font-medium">
+                    <a href="#tarot" class="text-slate-300 hover:text-gold-300 transition flex items-center gap-2">
+                        <i class="fa-solid fa-cards text-gold-400"></i> Oráculo Tarot
+                    </a>
+                    <a href="#astrologia" class="text-slate-300 hover:text-gold-300 transition flex items-center gap-2">
+                        <i class="fa-solid fa-moon text-gold-400"></i> Zodíaco
+                    </a>
+                    <a href="#cronologia" class="text-slate-300 hover:text-gold-300 transition flex items-center gap-2">
+                        <i class="fa-solid fa-hourglass-half text-gold-400"></i> Cronología Cósmica
+                    </a>
+                    <a href="#oraculo" class="text-slate-300 hover:text-gold-300 transition flex items-center gap-2">
+                        <i class="fa-solid fa-compass text-gold-400"></i> Consulta Personal
+                    </a>
+                </nav>
+
+                <!-- CTA Button -->
+                <a href="#tarot" class="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-astral-900 font-bold px-5 py-2.5 rounded-full text-xs uppercase tracking-wider transition shadow-lg gold-glow">
+                    <i class="fa-solid fa-sparkles"></i> Tirar Cartas
+                </a>
+
+                <!-- Mobile Menu Button -->
+                <button id="mobileMenuBtn" class="md:hidden text-gold-400 p-2 focus:outline-none">
+                    <i class="fa-solid fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile dropdown -->
+        <div id="mobileMenu" class="hidden md:hidden glass-panel border-t border-gold-500/20 px-4 pt-2 pb-6 space-y-3 text-center">
+            <a href="#tarot" class="block py-2 text-slate-200 hover:text-gold-300 font-medium">Oráculo Tarot</a>
+            <a href="#astrologia" class="block py-2 text-slate-200 hover:text-gold-300 font-medium">Zodíaco & Signos</a>
+            <a href="#cronologia" class="block py-2 text-slate-200 hover:text-gold-300 font-medium">Cronología Cósmica</a>
+            <a href="#oraculo" class="block py-2 text-slate-200 hover:text-gold-300 font-medium">Consulta Personalizada</a>
+        </div>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section class="relative z-10 pt-12 pb-20 md:pt-20 md:pb-32 px-4 max-w-6xl mx-auto text-center">
+        <div class="inline-flex items-center gap-2 bg-astral-800/80 border border-gold-400/30 px-4 py-1.5 rounded-full text-xs font-semibold text-gold-300 uppercase tracking-widest mb-6 gold-glow">
+            <i class="fa-solid fa-sun text-yellow-400 animate-spin-slow"></i> Sabiduría Ancestral de las Estrellas
+        </div>
+
+        <h1 class="font-cinzel text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white mb-6 leading-tight">
+            Descubre el <span class="text-gold-gradient italic">Oráculo del Tiempo</span> & los Misterios del Zodíaco
+        </h1>
+
+        <p class="text-slate-300 text-base sm:text-lg md:text-xl max-w-3xl mx-auto mb-10 leading-relaxed">
+            Explora las sincronicidades del universo. Revela tu presente a través del Tarot, descifra tu mapa zodiacal y navega la cronología de tus ciclos de vida astrológicos.
+        </p>
+
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="#tarot" class="w-full sm:w-auto bg-gradient-to-r from-gold-400 via-gold-500 to-gold-600 text-astral-900 font-extrabold px-8 py-4 rounded-2xl text-sm uppercase tracking-wider shadow-xl hover:scale-105 transition gold-glow flex items-center justify-center gap-2">
+                <i class="fa-solid fa-eye text-lg"></i> Consultar el Tarot Ahora
+            </a>
+            <a href="#cronologia" class="w-full sm:w-auto glass-panel border border-gold-400/40 hover:bg-gold-500/10 text-gold-300 font-bold px-8 py-4 rounded-2xl text-sm uppercase tracking-wider transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left"></i> Ver Cronología 2026-2027
+            </a>
+        </div>
+
+        <!-- Stats / Quick badges -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 max-w-4xl mx-auto">
+            <div class="glass-panel p-4 rounded-2xl border border-gold-500/20">
+                <span class="block text-3xl font-cinzel font-bold text-gold-300">78</span>
+                <span class="text-xs text-slate-400 uppercase tracking-wider">Arcanos del Tarot</span>
+            </div>
+            <div class="glass-panel p-4 rounded-2xl border border-gold-500/20">
+                <span class="block text-3xl font-cinzel font-bold text-gold-300">12</span>
+                <span class="text-xs text-slate-400 uppercase tracking-wider">Signos Zodiacales</span>
+            </div>
+            <div class="glass-panel p-4 rounded-2xl border border-gold-500/20">
+                <span class="block text-3xl font-cinzel font-bold text-gold-300">100%</span>
+                <span class="text-xs text-slate-400 uppercase tracking-wider">Sincronicidad Cósmica</span>
+            </div>
+            <div class="glass-panel p-4 rounded-2xl border border-gold-500/20">
+                <span class="block text-3xl font-cinzel font-bold text-gold-300">Ciclos</span>
+                <span class="text-xs text-slate-400 uppercase tracking-wider">Línea de Tiempo Astral</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECCIÓN 1: ORÁCULO DE TAROT -->
+    <section id="tarot" class="relative z-10 py-16 bg-gradient-to-b from-transparent via-astral-900/80 to-transparent border-t border-b border-gold-500/10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <span class="text-gold-400 text-xs font-bold uppercase tracking-widest block mb-2">✦ Mística de los Arcanos ✦</span>
+                <h2 class="font-cinzel text-3xl sm:text-5xl font-extrabold text-white mb-4">
+                    Tirada de Tarot Interactiva
+                </h2>
+                <p class="text-slate-300 text-sm sm:text-base">
+                    Concentra tu intención, formula una pregunta en tu mente y selecciona tus 3 cartas para revelar el **Pasado, Presente y Futuro**.
+                </p>
+            </div>
+
+            <!-- Controles de la tirada -->
+            <div class="flex justify-center gap-4 mb-10">
+                <button id="btnShuffle" onclick="resetTarotSpread()" class="bg-astral-800 hover:bg-astral-700 text-gold-300 border border-gold-500/40 px-6 py-3 rounded-xl text-xs uppercase font-bold tracking-wider transition flex items-center gap-2 gold-glow">
+                    <i class="fa-solid fa-arrows-rotate"></i> Barajar y Volver a Intentar
+                </button>
+            </div>
+
+            <!-- Grid de Cartas -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                
+                <!-- Carta 1: Pasado -->
+                <div class="flex flex-col items-center">
+                    <span class="text-xs font-cinzel uppercase tracking-widest text-gold-400 font-bold mb-3">1. Pasado / Origen</span>
+                    <div class="tarot-card-container w-48 h-80 sm:w-56 sm:h-96" onclick="flipTarotCard(0)">
+                        <div id="card-0" class="tarot-card">
+                            <!-- Reverso -->
+                            <div class="tarot-card-back p-4 text-center">
+                                <div class="w-full h-full border border-gold-500/40 rounded-lg flex flex-col items-center justify-center p-2">
+                                    <div class="w-16 h-16 rounded-full border border-gold-400/40 flex items-center justify-center text-gold-400 text-2xl mb-2">
+                                        ⚖️
+                                    </div>
+                                    <span class="font-cinzel text-xs text-gold-300 tracking-widest uppercase">Astraea Tarot</span>
+                                    <span class="text-[10px] text-slate-400 mt-2">Haz Clic para Revelar</span>
+                                </div>
+                            </div>
+                            <!-- Frente -->
+                            <div id="card-front-0" class="tarot-card-front p-4 flex flex-col justify-between text-center">
+                                <!-- JS Populates Content -->
+                            </div>
+                        </div>
+                    </div>
+                    <div id="card-desc-0" class="mt-4 glass-panel p-4 rounded-xl text-left text-xs text-slate-300 hidden w-full">
+                        <!-- JS Description -->
+                    </div>
+                </div>
+
+                <!-- Carta 2: Presente -->
+                <div class="flex flex-col items-center">
+                    <span class="text-xs font-cinzel uppercase tracking-widest text-gold-400 font-bold mb-3">2. Presente / Desafío</span>
+                    <div class="tarot-card-container w-48 h-80 sm:w-56 sm:h-96" onclick="flipTarotCard(1)">
+                        <div id="card-1" class="tarot-card">
+                            <!-- Reverso -->
+                            <div class="tarot-card-back p-4 text-center">
+                                <div class="w-full h-full border border-gold-500/40 rounded-lg flex flex-col items-center justify-center p-2">
+                                    <div class="w-16 h-16 rounded-full border border-gold-400/40 flex items-center justify-center text-gold-400 text-2xl mb-2">
+                                        🔮
+                                    </div>
+                                    <span class="font-cinzel text-xs text-gold-300 tracking-widest uppercase">Astraea Tarot</span>
+                                    <span class="text-[10px] text-slate-400 mt-2">Haz Clic para Revelar</span>
+                                </div>
+                            </div>
+                            <!-- Frente -->
+                            <div id="card-front-1" class="tarot-card-front p-4 flex flex-col justify-between text-center">
+                                <!-- JS Populates Content -->
+                            </div>
+                        </div>
+                    </div>
+                    <div id="card-desc-1" class="mt-4 glass-panel p-4 rounded-xl text-left text-xs text-slate-300 hidden w-full">
+                        <!-- JS Description -->
+                    </div>
+                </div>
+
+                <!-- Carta 3: Futuro -->
+                <div class="flex flex-col items-center">
+                    <span class="text-xs font-cinzel uppercase tracking-widest text-gold-400 font-bold mb-3">3. Futuro / Consejo</span>
+                    <div class="tarot-card-container w-48 h-80 sm:w-56 sm:h-96" onclick="flipTarotCard(2)">
+                        <div id="card-2" class="tarot-card">
+                            <!-- Reverso -->
+                            <div class="tarot-card-back p-4 text-center">
+                                <div class="w-full h-full border border-gold-500/40 rounded-lg flex flex-col items-center justify-center p-2">
+                                    <div class="w-16 h-16 rounded-full border border-gold-400/40 flex items-center justify-center text-gold-400 text-2xl mb-2">
+                                        🌟
+                                    </div>
+                                    <span class="font-cinzel text-xs text-gold-300 tracking-widest uppercase">Astraea Tarot</span>
+                                    <span class="text-[10px] text-slate-400 mt-2">Haz Clic para Revelar</span>
+                                </div>
+                            </div>
+                            <!-- Frente -->
+                            <div id="card-front-2" class="tarot-card-front p-4 flex flex-col justify-between text-center">
+                                <!-- JS Populates Content -->
+                            </div>
+                        </div>
+                    </div>
+                    <div id="card-desc-2" class="mt-4 glass-panel p-4 rounded-xl text-left text-xs text-slate-300 hidden w-full">
+                        <!-- JS Description -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Síntesis global de la lectura -->
+            <div id="tarotSynthesis" class="mt-12 glass-panel-gold p-6 sm:p-8 rounded-3xl max-w-3xl mx-auto text-center hidden">
+                <h3 class="font-cinzel text-xl sm:text-2xl font-bold text-gold-300 mb-2">
+                    ✨ Síntesis Espiritual de tu Lectura
+                </h3>
+                <p id="synthesisText" class="text-sm text-slate-200 leading-relaxed">
+                    <!-- JS generated summary -->
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECCIÓN 2: ASTROLOGÍA Y GUÍA ZODIACAL -->
+    <section id="astrologia" class="relative z-10 py-16 max-w-6xl mx-auto px-4 sm:px-6">
+        <div class="text-center max-w-3xl mx-auto mb-12">
+            <span class="text-gold-400 text-xs font-bold uppercase tracking-widest block mb-2">✦ La Rueda del Zodíaco ✦</span>
+            <h2 class="font-cinzel text-3xl sm:text-5xl font-extrabold text-white mb-4">
+                Astrología & Signos Zodiacales
+            </h2>
+            <p class="text-slate-300 text-sm sm:text-base">
+                Selecciona tu signo zodiacal para explorar sus cualidades, elemento, planeta regente y la energía astrológica actual.
+            </p>
+        </div>
+
+        <!-- Selector de Signos Zodiacales -->
+        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-10">
+            <button onclick="selectZodiacSign('aries')" class="zodiac-btn p-3 rounded-2xl glass-panel text-center hover:border-gold-400 transition group focus:ring-2 focus:ring-gold-400">
+                <span class="block text-2xl mb-1 text-red-400 group-hover:scale-110 transition">♈</span>
+                <span class="block font-cinzel text-xs font-bold text-slate-200">Aries</span>
+                <span class="block text-[10px] text-slate-400">Fuego</span>
+            </button>
+            <button onclick="selectZodiacSign('tauro')" class="zodiac-btn p-3 rounded-2xl glass-panel text-center hover:border-gold-400 transition group">
+                <span class="block text-2xl mb-1 text-emerald-400 group-hover:scale-110 transition">♉</span>
+                <span class="block font-cinzel text-xs font-bold text-slate-200">Tauro</span>
+                <span class="block text-[10px] text-slate-400">Tierra</span>
+            </button>
+            <button onclick="selectZodiacSign('geminis')" class="zodiac-btn p-3 rounded-2xl glass-panel text-center hover:border-gold-400 transition group">
+                <span class="block text-2xl mb-1 text-sky-400 group-hover:scale-110 transition">♊</span>
+                <span class="block font-cinzel text-xs font-bold text-slate-200">Géminis</span>
+                <span class="block text-[10px] text-slate-400">Aire</span>
+            </button>
+            <button onclick="selectZodiacSign('cancer')" class="zodiac-btn p-3 rounded-2xl glass-panel text-center hover:border-gold-400 transition group">
+                <span class="block text-2xl mb-1 text-blue-300 group-hover:scale-110 transition">♋</span>
+                <span class="block font-cinzel text-xs font-bold text-slate-200">Cáncer</span>
+                <span class="block text-[10px] text-slate-400">Agua</span>
+            </button>
+            <button onclick="selectZodiacSign('leo')" class="zodiac-btn p-3 rounded-2xl glass-panel text-center hover:border-gold-400 transition group">
+                <span class="block text-2xl mb-1 text-amber-400 group-hover:scale-110 transition">♌</span>
+                <span class="block font-cinzel text-xs font-bold text-slate-200">Leo</span>
+                <span class="block text-[10px] text-slate-400">Fuego</span>
+            </button>
+            <button onclick="selectZodiacSign('virgo')" class="zodiac-btn p-3 rounded-2xl glass-panel text-center hover:border-gold-400 transition group">
+                <span class="block text-2xl mb-1 text-emerald-300 group-hover:scale-110 transition">♍</span>
+                <span class="block font-cinzel text-xs font-bold text-slate-200">Virgo</span>
+                <span class="block text-[10px] text-slate-400">Tierra</span>
+            </button>
+            <button onclick="selectZodiacSign('libra')" class="zodiac-btn p-3 rounded-2xl glass-panel text-center hover:border-gold-400 transition group">
+                <span class="block text-2xl mb-1 text-indigo-300 group-hover:scale-110 transition">♎</span>
+                <span class="block font-cinzel text-xs font-bold text-slate-200">Libra</span>
+                <span class="block text-[10px] text-slate-400">Aire</span>
+            </button>
+            <button onclick="selectZodiacSign('escorpio')" class="zodiac-btn p-3 rounded-2xl glass-panel text-center hover:border-gold-400 transition group">
+                <span class="block text-2xl mb-1 text-purple-400 group-hover:scale-110 transition">♏</span>
+                <span class="block font-cinzel text-xs font-bold text-slate-200">Escorpio</span>
+                <span class="block text-[10px] text-slate-400">Agua</span>
+            </button>
+            <button onclick="selectZodiacSign('sagitario')" class="zodiac-btn p-3 rounded-2xl glass-panel text-center hover:border-gold-400 transition group">
+                <span class="block text-2xl mb-1 text-orange-400 group-hover:scale-110 transition">♐</span>
+                <span class="block font-cinzel text-xs font-bold text-slate-200">Sagitario</span>
+                <span class="block text-[10px] text-slate-400">Fuego</span>
+            </button>
+            <button onclick="selectZodiacSign('capricornio')" class="zodiac-btn p-3 rounded-2xl glass-panel text-center hover:border-gold-400 transition group">
+                <span class="block text-2xl mb-1 text-stone-300 group-hover:scale-110 transition">♑</span>
+                <span class="block font-cinzel text-xs font-bold text-slate-200">Capricornio</span>
+                <span class="block text-[10px] text-slate-400">Tierra</span>
+            </button>
+            <button onclick="selectZodiacSign('acuario')" class="zodiac-btn p-3 rounded-2xl glass-panel text-center hover:border-gold-400 transition group">
+                <span class="block text-2xl mb-1 text-cyan-300 group-hover:scale-110 transition">♒</span>
+                <span class="block font-cinzel text-xs font-bold text-slate-200">Acuario</span>
+                <span class="block text-[10px] text-slate-400">Aire</span>
+            </button>
+            <button onclick="selectZodiacSign('piscis')" class="zodiac-btn p-3 rounded-2xl glass-panel text-center hover:border-gold-400 transition group">
+                <span class="block text-2xl mb-1 text-teal-300 group-hover:scale-110 transition">♓</span>
+                <span class="block font-cinzel text-xs font-bold text-slate-200">Piscis</span>
+                <span class="block text-[10px] text-slate-400">Agua</span>
+            </button>
+        </div>
+
+        <!-- Panel de Detalle del Signo Seleccionado -->
+        <div id="zodiacDetailPanel" class="glass-panel p-6 sm:p-8 rounded-3xl border border-gold-500/30">
+            <!-- JS content filled here -->
+        </div>
+    </section>
+
+    <!-- SECCIÓN 3: CRONOLOGÍA CÓSMICA Y CICLOS DE VIDA -->
+    <section id="cronologia" class="relative z-10 py-16 bg-gradient-to-b from-transparent via-astral-900/90 to-transparent border-t border-b border-gold-500/10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <span class="text-gold-400 text-xs font-bold uppercase tracking-widest block mb-2">✦ La Espiral del Tiempo ✦</span>
+                <h2 class="font-cinzel text-3xl sm:text-5xl font-extrabold text-white mb-4">
+                    Cronología Astrológica
+                </h2>
+                <p class="text-slate-300 text-sm sm:text-base">
+                    Los astros no solo nos influyen en el espacio, sino en el tiempo. Revisa los **Tránsitos Planetarios Clave** o calcula tu **Línea del Tiempo Astrológica Personal**.
+                </p>
+            </div>
+
+            <!-- Calculador de Ciclos Personales -->
+            <div class="glass-panel-gold p-6 sm:p-8 rounded-3xl mb-12 max-w-3xl mx-auto">
+                <h3 class="font-cinzel text-xl font-bold text-gold-300 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-hourglass-start"></i> Calcula tu Cronología de Ciclos de Vida
+                </h3>
+                <p class="text-xs text-slate-300 mb-6">
+                    Ingresa tu año de nacimiento para revelar tus hitos astrológicos pasados y futuros (Retornos de Saturno, Júpiter y Oposición de Urano).
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <input type="number" id="birthYearInput" placeholder="Ej: 1995" min="1930" max="2026" 
+                           class="bg-astral-900/90 border border-gold-500/40 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold-300 w-full text-sm">
+                    <button onclick="calculatePersonalTimeline()" 
+                            class="bg-gradient-to-r from-gold-400 to-gold-600 text-astral-900 font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-wider hover:scale-105 transition shadow-md whitespace-nowrap">
+                        Calcular Cronología
+                    </button>
+                </div>
+
+                <div id="personalTimelineResult" class="mt-6 hidden space-y-3">
+                    <!-- JS populated timeline -->
+                </div>
+            </div>
+
+            <!-- Timeline de Tránsitos Globales (Eclipses y Movimientos) -->
+            <div class="space-y-6">
+                <h3 class="font-cinzel text-2xl font-bold text-center text-white mb-8">
+                    🌌 Cronología de Eventos Astrológicos 2026 - 2027
+                </h3>
+
+                <div class="relative border-l-2 border-gold-500/30 ml-4 md:ml-32 space-y-8">
+                    
+                    <!-- Evento 1 -->
+                    <div class="relative pl-8 md:pl-10">
+                        <div class="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-gold-400 border-4 border-astral-900 shadow-md"></div>
+                        <div class="glass-panel p-5 rounded-2xl border border-gold-500/20">
+                            <span class="text-xs font-bold text-gold-400 uppercase tracking-widest block mb-1">Marzo 2026</span>
+                            <h4 class="font-cinzel font-bold text-lg text-white mb-1">Eclipse Total de Sol en Aries</h4>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                Un reinicio cósmico masivo que impulsa nuevos comienzos, valentía y la toma de decisiones audaces. Ideal para proyectar intenciones de emprendimiento y liderazgo.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Evento 2 -->
+                    <div class="relative pl-8 md:pl-10">
+                        <div class="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-purple-400 border-4 border-astral-900 shadow-md"></div>
+                        <div class="glass-panel p-5 rounded-2xl border border-gold-500/20">
+                            <span class="text-xs font-bold text-purple-400 uppercase tracking-widest block mb-1">Julio 2026</span>
+                            <h4 class="font-cinzel font-bold text-lg text-white mb-1">Júpiter entra en Leo</h4>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                Una ola de creatividad, magnetismo personal y expansión artística. Abre un período de esplendor para proyectos creativos, romance y autoexpresión.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Evento 3 -->
+                    <div class="relative pl-8 md:pl-10">
+                        <div class="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-sky-400 border-4 border-astral-900 shadow-md"></div>
+                        <div class="glass-panel p-5 rounded-2xl border border-gold-500/20">
+                            <span class="text-xs font-bold text-sky-400 uppercase tracking-widest block mb-1">Noviembre 2026</span>
+                            <h4 class="font-cinzel font-bold text-lg text-white mb-1">Mercurio Retrogrado en Signos de Agua</h4>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                Momento de introspección profunda, sanación emocional y revisión de viejos patrones afectivos. Evitar la firma de contratos apresurados.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Evento 4 -->
+                    <div class="relative pl-8 md:pl-10">
+                        <div class="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-emerald-400 border-4 border-astral-900 shadow-md"></div>
+                        <div class="glass-panel p-5 rounded-2xl border border-gold-500/20">
+                            <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest block mb-1">AÑO 2027</span>
+                            <h4 class="font-cinzel font-bold text-lg text-white mb-1">Alineación Armónica de Urano y Plutón</h4>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                Gran salto tecnológico y espiritual global. Reorganización de valores colectivos y despertar de conciencia comunitaria.
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECCIÓN 4: ORÁCULO COMBINADO Y CONSULTA PERSONAL -->
+    <section id="oraculo" class="relative z-10 py-16 max-w-4xl mx-auto px-4 sm:px-6">
+        <div class="glass-panel-gold p-8 sm:p-10 rounded-3xl border border-gold-400/40 shadow-2xl relative overflow-hidden">
+            <div class="text-center max-w-2xl mx-auto mb-8">
+                <span class="text-gold-300 text-xs font-bold uppercase tracking-widest block mb-2">✦ Consulta Personalizada ✦</span>
+                <h2 class="font-cinzel text-3xl sm:text-4xl font-extrabold text-white mb-3">
+                    El Oráculo del Tiempo
+                </h2>
+                <p class="text-slate-300 text-xs sm:text-sm">
+                    Combina tu energía natal con la vibración de una carta de Tarot aleatoria para recibir una revelación canalizada para este momento exacto.
+                </p>
+            </div>
+
+            <form id="oracleForm" onsubmit="generatePersonalOracleReading(event)" class="space-y-5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gold-300 uppercase tracking-wider mb-2">Tu Nombre</label>
+                        <input type="text" id="oracleName" required placeholder="Ej: Elena Ruiz" 
+                               class="w-full bg-astral-900/90 border border-gold-500/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-gold-300">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gold-300 uppercase tracking-wider mb-2">Tu Signo Solar</label>
+                        <select id="oracleSign" required class="w-full bg-astral-900/90 border border-gold-500/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-gold-300">
+                            <option value="Aries">Aries (21 Mar - 19 Abr)</option>
+                            <option value="Tauro">Tauro (20 Abr - 20 May)</option>
+                            <option value="Géminis">Géminis (21 May - 20 Jun)</option>
+                            <option value="Cáncer">Cáncer (21 Jun - 22 Jul)</option>
+                            <option value="Leo">Leo (23 Jul - 22 Ago)</option>
+                            <option value="Virgo">Virgo (23 Ago - 22 Sep)</option>
+                            <option value="Libra">Libra (23 Sep - 22 Oct)</option>
+                            <option value="Escorpio">Escorpio (23 Oct - 21 Nov)</option>
+                            <option value="Sagitario">Sagitario (22 Nov - 21 Dic)</option>
+                            <option value="Capricornio">Capricornio (22 Dic - 19 Ene)</option>
+                            <option value="Acuario">Acuario (20 Ene - 18 Feb)</option>
+                            <option value="Piscis">Piscis (19 Feb - 20 Mar)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gold-300 uppercase tracking-wider mb-2">Área de Consulta</label>
+                    <select id="oracleFocus" required class="w-full bg-astral-900/90 border border-gold-500/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-gold-300">
+                        <option value="Amor y Relaciones">💖 Amor y Conexiones Soulmate</option>
+                        <option value="Propósito y Finanzas">🌟 Propósito de Vida & Prosperidad</option>
+                        <option value="Evolución Espiritual">🔮 Desarrollo Intuitivo y Sanación</option>
+                        <option value="Decisión Crucial">⚖️ Orientación para una Elección</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full bg-gradient-to-r from-gold-400 via-gold-500 to-gold-600 text-astral-900 font-extrabold py-4 rounded-xl text-sm uppercase tracking-wider hover:scale-[1.01] transition shadow-lg gold-glow flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Revelar Mensaje del Oráculo
+                </button>
+            </form>
+
+            <!-- Resultado de la consulta -->
+            <div id="oracleResultModal" class="hidden mt-8 p-6 bg-astral-900/95 border border-gold-400 rounded-2xl text-left space-y-4 animate-fade-in">
+                <!-- JS populated -->
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="relative z-10 border-t border-gold-500/20 bg-astral-950/80 py-10 text-center text-xs text-slate-400">
+        <div class="max-w-6xl mx-auto px-4 space-y-4">
+            <div class="flex justify-center items-center gap-2">
+                <span class="font-cinzel text-lg font-bold text-gold-gradient">ASTRAEA</span>
+                <span class="text-gold-400">•</span>
+                <span>Sabiduría Mística & Tiempo Cósmico</span>
+            </div>
+            <p class="max-w-xl mx-auto text-slate-500 text-[11px] leading-relaxed">
+                El tarot y la astrología son herramientas simbólicas de autorreflexión y guía intuitiva. Astraea © 2026. Todos los derechos reservados.
+            </p>
+            <div class="flex justify-center gap-4 text-gold-400/70 text-base">
+                <a href="#" class="hover:text-gold-300 transition"><i class="fa-brands fa-instagram"></i></a>
+                <a href="#" class="hover:text-gold-300 transition"><i class="fa-solid fa-star"></i></a>
+                <a href="#" class="hover:text-gold-300 transition"><i class="fa-solid fa-envelope"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT APP LOGIC -->
+    <script>
+        const tarotDeck = [
+            { id: 0, name: "El Loco", icon: "🃏", keyword: "Nuevos Comienzos", desc: "Un salto de fe. Es hora de dejar atrás los miedos y confiar en la aventura que el universo tiene preparada para ti." },
+            { id: 1, name: "El Mago", icon: "🪄", keyword: "Manifestación y Poder", desc: "Posees todas las herramientas necesarias para crear tu realidad. Canaliza tu intención y pasa a la acción." },
+            { id: 2, name: "La Sacerdotisa", icon: "🌙", keyword: "Intuición y Misterio", desc: "Escucha la voz silenciosa de tu interior. Los secretos ocultos se revelarán cuando aquietes tu mente." },
+            { id: 3, name: "La Emperatriz", icon: "👑", keyword: "Abundancia y Nutrición", desc: "Período de fertilidad creativa y crecimiento personal. Todo lo que has sembrado con amor florecerá." },
+            { id: 4, name: "El Emperador", icon: "🏛️", keyword: "Estructura y Dominio", desc: "Momento de poner orden, definir límites claros y liderar tu vida con disciplina y firmeza." },
+            { id: 5, name: "El Sumo Sacerdote", icon: "📜", keyword: "Sabiduría Tradicional", desc: "Busca consejo espiritual o enseñanza. Las verdades ancestrales guiarán tu siguiente paso." },
+            { id: 6, name: "Los Enamorados", icon: "💞", keyword: "Elección del Corazón", desc: "Alineación de valores y uniones profundas. Una decisión importante debe tomarse desde el amor verdadero." },
+            { id: 7, name: "El Carro", icon: "🛞", keyword: "Victoria y Determinación", desc: "Superarás los obstáculos si mantienes la concentración. Toma las riendas del destino con voluntad." },
+            { id: 8, name: "La Fuerza", icon: "🦁", keyword: "Compasión y Coraje", desc: "La verdadera fuerza no es dominio bruto, sino paciencia, autocontrol y amor incondicional." },
+            { id: 9, name: "El Ermitaño", icon: "🕯️", keyword: "Introspección y Luz", desc: "Retírate del ruido del mundo. En la soledad sabia encontrarás la antorcha que ilumina tu camino." },
+            { id: 10, name: "La Rueda de la Fortuna", icon: "☸️", keyword: "Ciclos y Sincronicidad", desc: "El destino gira a tu favor. Acepta los cambios inevitables con gracia sabiendo que todo evoluciona." },
+            { id: 11, name: "La Justicia", icon: "⚖️", keyword: "Equilibrio y Verdad", desc: "Causa y efecto. Cosechas lo que has sembrado. Se imparte claridad y decisiones equitativas." },
+            { id: 12, name: "El Colgado", icon: "🙃", keyword: "Nuevas Perspectivas", desc: "Pausa necesaria. Suelta el control y mira la situación desde otro ángulo para obtener la revelación." },
+            { id: 13, name: "La Muerte", icon: "🦋", keyword: "Transformación Profunda", desc: "El fin de una etapa y el nacimiento de una versión renovada. Deja ir lo viejo con gratitud." },
+            { id: 14, name: "La Templanza", icon: "🏺", keyword: "Armonía y Paciencia", desc: "Mezcla los ingredientes de tu vida con serenidad. El equilibrio emocional restaura tu energía." },
+            { id: 15, name: "El Diablo", icon: "🔗", keyword: "Liberación de Cadenas", desc: "Toma conciencia de las ilusiones o apegos que te limitan. Tienes la llave para liberarte." },
+            { id: 16, name: "La Torre", icon: "⚡", keyword: "Revelación Repentina", desc: "Caída de lo falso para construir sobre cimientos de verdad absoluta. Liberación necesaria." },
+            { id: 17, name: "La Estrella", icon: "⭐", keyword: "Esperanza y Sanación", desc: "Luz al final del túnel. Renovada fe en el futuro y conexión directa con las bendiciones cósmicas." },
+            { id: 18, name: "La Luna", icon: "🌕", keyword: "Mundo Subconsciente", desc: "Navega a través de las sombras y los sueños. No todo es lo que parece; confía en tu sentido intuitivo." },
+            { id: 19, name: "El Sol", icon: "☀️", keyword: "Éxito y Vitalidad", desc: "Claridad total, alegría contagiosa y triunfo radiante. Tu verdad brilla con intensidad." },
+            { id: 20, name: "El Juicio", icon: "🎺", keyword: "Despertar y Llamado", desc: "Escucha tu llamado superior. Perzona el pasado y da el paso hacia tu verdadera vocación." },
+            { id: 21, name: "El Mundo", icon: "🌍", keyword: "Plenitud y Cierre", desc: "Culminación exitosa de un gran ciclo. Estás listo para integrar tu aprendizaje y comenzar de nuevo en un nivel superior." }
+        ];
+
+        const zodiacData = {
+            aries: {
+                name: "Aries",
+                dates: "21 de Marzo - 19 de Abril",
+                element: "Fuego 🔥",
+                ruler: "Marte ♂️",
+                traits: "Iniciador, valiente, apasionado e independiente.",
+                daily: "Tu regente Marte activa tu impulso creativo. Es un momento propicio para tomar la iniciativa en proyectos postergados y confiar en tus instintos directos."
+            },
+            tauro: {
+                name: "Tauro",
+                dates: "20 de Abril - 20 de Mayo",
+                element: "Tierra 🪵",
+                ruler: "Venus ♀️",
+                traits: "Leal, perseverante, amante del confort y constructivo.",
+                daily: "Venus aporta armonía a tu entorno material. Conéctate con la naturaleza y disfruta de los placeres simples; la constancia te traerá grandes cosechas."
+            },
+            geminis: {
+                name: "Géminis",
+                dates: "21 de Mayo - 20 de Junio",
+                element: "Aire 💨",
+                ruler: "Mercurio ☿",
+                traits: "Curioso, elocuente, adaptable y de mente ágil.",
+                daily: "Mercurio estimula tus ideas y comunicaciones. Una conversación inesperada o una lectura reveladora abrirán puertas para tu crecimiento."
+            },
+            cancer: {
+                name: "Cáncer",
+                dates: "21 de Junio - 22 de Julio",
+                element: "Agua 🌊",
+                ruler: "La Luna 🌙",
+                traits: "Intuitivo, protector, empático y profundamente afectivo.",
+                daily: "La energía lunar resalta tu intuición. Dedica tiempo a nutrir tu santuario personal y honrar tus emociones sin juzgarlas."
+            },
+            leo: {
+                name: "Leo",
+                dates: "23 de Julio - 22 de Agosto",
+                element: "Fuego 🔥",
+                ruler: "El Sol ☀️",
+                traits: "Generoso, magnético, expresivo y líder natural.",
+                daily: "El Sol ilumina tu centro de poder. Comparte tu luz con los demás sin reservas; tu autenticidad inspirará a quienes te rodean."
+            },
+            virgo: {
+                name: "Virgo",
+                dates: "23 de Agosto - 22 de Septiembre",
+                element: "Tierra 🪵",
+                ruler: "Mercurio ☿",
+                traits: "Analítico, enfocado en el servicio, perfeccionista y metódico.",
+                daily: "Momento excelente para organizar tu rutina y prestar atención a la salud. Pequeños ajustes diarios generarán una profunda paz mental."
+            },
+            libra: {
+                name: "Libra",
+                dates: "23 de Septiembre - 22 de Octubre",
+                element: "Aire 💨",
+                ruler: "Venus ♀️",
+                traits: "Buscador de belleza, diplomático, justo y empático.",
+                daily: "La balanza cósmica pide cultivar relaciones equitativas. La mediación y el arte serán tus mejores aliados en el día de hoy."
+            },
+            escorpio: {
+                name: "Escorpio",
+                dates: "23 de Octubre - 21 de Noviembre",
+                element: "Agua 🌊",
+                ruler: "Plutón ♇ / Marte ♂️",
+                traits: "Transformador, magnético, intuitivo y apasionado.",
+                daily: "Las influencias plutonianas facilitan la sanación y la regeneración. Suelta lo que ya no sirve para permitir el renacimiento interior."
+            },
+            sagitario: {
+                name: "Sagitario",
+                dates: "22 de Noviembre - 21 de Diciembre",
+                element: "Fuego 🔥",
+                ruler: "Júpiter ♃",
+                traits: "Optimista, filósofo, explorador y buscador de verdad.",
+                daily: "Júpiter amplía tus horizontes. Es tiempo de estudiar algo nuevo o planificar viajes que expandan tu visión del mundo."
+            },
+            capricornio: {
+                name: "Capricornio",
+                dates: "22 de Diciembre - 19 de Enero",
+                element: "Tierra 🪵",
+                ruler: "Saturno ♄",
+                traits: "Resiliente, responsable, visionario a largo plazo y enfocado.",
+                daily: "Saturno recompensa la disciplina. Tus esfuerzos constantes están consolidando bases sólidas para tus metas profesionales."
+            },
+            acuario: {
+                name: "Acuario",
+                dates: "20 de Enero - 18 de Febrero",
+                element: "Aire 💨",
+                ruler: "Urano ♅",
+                traits: "Innovador, visionario, altruista y de espíritu libre.",
+                daily: "Urano te motiva a romper esquemas caducos. Apuesta por ideas vanguardistas y colabora con comunidades afines a tu visión."
+            },
+            piscis: {
+                name: "Piscis",
+                dates: "19 de Febrero - 20 de Marzo",
+                element: "Agua 🌊",
+                ruler: "Neptuno ♆",
+                traits: "Compasivo, soñador, místico y con gran sensibilidad artística.",
+                daily: "Neptuno potencia tu imaginación. Medita, crea arte o practica la canalización intuitiva; los mensajes vendrán a través de tus sueños."
+            }
+        };
+
+        // Estado actual de las cartas elegidas
+        let activeTarotSpread = [];
+
+        function initStarsCanvas() {
+            const canvas = document.getElementById('starsCanvas');
+            const ctx = canvas.getContext('2d');
+            let stars = [];
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                stars = [];
+                const count = Math.floor((canvas.width * canvas.height) / 4000);
+                for(let i = 0; i < count; i++) {
+                    stars.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        radius: Math.random() * 1.5,
+                        alpha: Math.random(),
+                        speed: Math.random() * 0.02 + 0.005
+                    });
+                }
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                stars.forEach(star => {
+                    star.alpha += star.speed;
+                    if(star.alpha > 1 || star.alpha < 0) star.speed = -star.speed;
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(226, 195, 102, ${Math.abs(star.alpha) * 0.8})`;
+                    ctx.fill();
+                });
+                requestAnimationFrame(draw);
+            }
+
+            window.addEventListener('resize', resize);
+            resize();
+            draw();
+        }
+
+        function resetTarotSpread() {
+            // Seleccionar 3 cartas aleatorias no repetidas
+            const shuffled = [...tarotDeck].sort(() => 0.5 - Math.random());
+            activeTarotSpread = shuffled.slice(0, 3);
+
+            for(let i = 0; i < 3; i++) {
+                const cardElem = document.getElementById(`card-${i}`);
+                const frontElem = document.getElementById(`card-front-${i}`);
+                const descElem = document.getElementById(`card-desc-${i}`);
+
+                cardElem.classList.remove('flipped');
+                descElem.classList.add('hidden');
+
+                const cardData = activeTarotSpread[i];
+                frontElem.innerHTML = `
+                    <div class="border border-gold-400/30 rounded-lg p-3 h-full flex flex-col justify-between items-center">
+                        <span class="text-xs text-gold-400 font-cinzel font-bold">${cardData.name}</span>
+                        <div class="text-5xl my-4 transform hover:scale-125 transition duration-300">${cardData.icon}</div>
+                        <div>
+                            <span class="inline-block bg-gold-500/20 text-gold-300 text-[10px] px-2 py-0.5 rounded border border-gold-400/30 font-bold uppercase mb-1">
+                                ${cardData.keyword}
+                            </span>
+                        </div>
+                    </div>
+                `;
+
+                descElem.innerHTML = `
+                    <h4 class="font-cinzel text-sm font-bold text-gold-300 mb-1">${cardData.name} (${cardData.keyword})</h4>
+                    <p class="leading-relaxed text-slate-300 text-[11px]">${cardData.desc}</p>
+                `;
+            }
+
+            document.getElementById('tarotSynthesis').classList.add('hidden');
+        }
+
+        function flipTarotCard(index) {
+            const cardElem = document.getElementById(`card-${index}`);
+            const descElem = document.getElementById(`card-desc-${index}`);
+
+            if(!cardElem.classList.contains('flipped')) {
+                cardElem.classList.add('flipped');
+                setTimeout(() => {
+                    descElem.classList.remove('hidden');
+                    checkSpreadCompletion();
+                }, 400);
+            }
+        }
+
+        function checkSpreadCompletion() {
+            const c0 = document.getElementById('card-0').classList.contains('flipped');
+            const c1 = document.getElementById('card-1').classList.contains('flipped');
+            const c2 = document.getElementById('card-2').classList.contains('flipped');
+
+            if(c0 && c1 && c2) {
+                const card0 = activeTarotSpread[0];
+                const card1 = activeTarotSpread[1];
+                const card2 = activeTarotSpread[2];
+
+                const synthesisText = `Tus energías muestran una transición desde <strong>${card0.name}</strong> en tu pasado, exigiendo sabiduría con <strong>${card1.name}</strong> en tu presente. Tu camino se orienta hacia la promesa de <strong>${card2.name}</strong>. Confía en este proceso cósmico.`;
+
+                document.getElementById('synthesisText').innerHTML = synthesisText;
+                document.getElementById('tarotSynthesis').classList.remove('hidden');
+            }
+        }
+
+        function selectZodiacSign(signKey) {
+            const sign = zodiacData[signKey];
+            if(!sign) return;
+
+            const panel = document.getElementById('zodiacDetailPanel');
+            panel.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                    <div class="md:col-span-4 text-center md:text-left border-b md:border-b-0 md:border-r border-gold-500/20 pb-6 md:pb-0 md:pr-6">
+                        <span class="inline-block bg-gold-500/20 text-gold-300 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-widest mb-2 border border-gold-400/30">
+                            ${sign.element}
+                        </span>
+                        <h3 class="font-cinzel text-3xl font-extrabold text-white mb-1">${sign.name}</h3>
+                        <p class="text-xs text-slate-400 mb-3">${sign.dates}</p>
+                        <div class="text-xs text-slate-300 space-y-1">
+                            <p><strong>Planeta Regente:</strong> ${sign.ruler}</p>
+                            <p><strong>Arquetipo:</strong> ${sign.traits}</p>
+                        </div>
+                    </div>
+                    <div class="md:col-span-8 space-y-3">
+                        <h4 class="font-cinzel text-lg font-bold text-gold-300 flex items-center gap-2">
+                            <i class="fa-solid fa-compass"></i> Guía Astrológica Actual
+                        </h4>
+                        <p class="text-sm text-slate-200 leading-relaxed bg-astral-900/60 p-4 rounded-xl border border-gold-500/20">
+                            ${sign.daily}
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function calculatePersonalTimeline() {
+            const yearInput = document.getElementById('birthYearInput').value;
+            const year = parseInt(yearInput);
+            const container = document.getElementById('personalTimelineResult');
+
+            if(!year || year < 1920 || year > 2026) {
+                alert("Por favor ingresa un año de nacimiento válido.");
+                return;
+            }
+
+            const jupiterReturn1 = year + 12;
+            const jupiterReturn2 = year + 24;
+            const saturnReturn1 = year + 29;
+            const uranusOpp = year + 42;
+            const saturnReturn2 = year + 58;
+
+            container.innerHTML = `
+                <div class="bg-astral-900/90 p-4 rounded-xl border border-gold-500/30 text-xs text-slate-200 space-y-2">
+                    <h4 class="font-cinzel font-bold text-gold-300 text-sm">✨ Cronología Astral para Nacidos en ${year}:</h4>
+                    <p>• <strong>${jupiterReturn1} & ${jupiterReturn2} (Años ${year + 12} y ${year + 24}):</strong> Retornos de Júpiter - Ciclos de gran expansión, viajes y descubrimientos vocacionales.</p>
+                    <p>• <strong>${saturnReturn1} (Año ${saturnReturn1}):</strong> Primer Retorno de Saturno - Gran maduración personal, entrada formal a la madurez y toma de compromisos trascendentales.</p>
+                    <p>• <strong>${uranusOpp} (Año ${uranusOpp}):</strong> Oposición de Urano - La llamada "reinvención de la mitad de la vida", liberación de ataduras y autenticidad plena.</p>
+                    <p>• <strong>${saturnReturn2} (Año ${saturnReturn2}):</strong> Segundo Retorno de Saturno - Maestría de vida, sabiduría compartida y consolidación del legado espiritual.</p>
+                </div>
+            `;
+            container.classList.remove('hidden');
+        }
+
+        function generatePersonalOracleReading(e) {
+            e.preventDefault();
+            const name = document.getElementById('oracleName').value;
+            const sign = document.getElementById('oracleSign').value;
+            const focus = document.getElementById('oracleFocus').value;
+
+            // Carta aleatoria del oráculo
+            const randomCard = tarotDeck[Math.floor(Math.random() * tarotDeck.length)];
+
+            const resultModal = document.getElementById('oracleResultModal');
+            resultModal.innerHTML = `
+                <div class="border-b border-gold-500/30 pb-3 flex justify-between items-center">
+                    <div>
+                        <h4 class="font-cinzel text-lg font-bold text-gold-300">Lectura para ${name} (${sign})</h4>
+                        <span class="text-xs text-slate-400">Enfoque: ${focus}</span>
+                    </div>
+                    <span class="text-3xl">${randomCard.icon}</span>
+                </div>
+                <div class="space-y-3 text-xs text-slate-200">
+                    <p class="text-gold-400 font-bold uppercase tracking-wider">
+                        Carta Revelada: ${randomCard.name} (${randomCard.keyword})
+                    </p>
+                    <p class="leading-relaxed">
+                        ${name}, la combinación de tu signo <strong>${sign}</strong> con la vibración de <strong>${randomCard.name}</strong> indica que en tu área de <em>${focus}</em> estás atravesando un umbral de alineación. ${randomCard.desc}
+                    </p>
+                    <div class="bg-gold-500/10 p-3 rounded-xl border border-gold-400/30 italic text-gold-200 text-[11px]">
+                        "El tiempo no es una línea recta, sino un círculo donde cada momento es una oportunidad de volver a empezar con mayor sabiduría."
+                    </div>
+                </div>
+            `;
+            resultModal.classList.remove('hidden');
+        }
+
+        window.onload = function() {
+            initStarsCanvas();
+            resetTarotSpread();
+            selectZodiacSign('aries');
+
+            // Mobile menu toggle
+            const btn = document.getElementById('mobileMenuBtn');
+            const menu = document.getElementById('mobileMenu');
+            btn.addEventListener('click', () => {
+                menu.classList.toggle('hidden');
+            });
+        };
+    </script>
+</body>
+</html>
